@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "arypodr.fullname" . }}
+  labels:
+    {{- include "arypodr.labels" . | nindent 4 }}
+data:
+  BASE_URL: {{ .Values.config.baseUrl | quote }}
+  MEDIA_PATH: {{ .Values.config.mediaPath | quote }}
+  REFRESH_INTERVAL_HOURS: {{ .Values.config.refreshIntervalHours | quote }}
+  MAX_CONCURRENT_SHOWS: {{ .Values.config.maxConcurrentShows | quote }}
+  INITIAL_EPISODES_PER_SHOW: {{ .Values.config.initialEpisodesPerShow | quote }}
+  MAX_FEED_SIZE_MB: {{ .Values.config.maxFeedSizeMb | quote }}
+  ARCHIVE_DIFF_DEFAULT: {{ .Values.config.archiveDiffDefault | quote }}
+  DEBUG: {{ .Values.config.debug | quote }}

@@ -1,0 +1,46 @@
+image:
+  repository: your-registry/arypodr
+  tag: "latest"
+  pullPolicy: Always
+
+podSecurityContext:
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+
+config:
+  baseUrl: "https://arypodr.example.com"
+  mediaPath: "/podcasts"
+  refreshIntervalHours: 4
+  maxConcurrentShows: 5
+  initialEpisodesPerShow: 25
+  maxFeedSizeMb: 20
+  archiveDiffDefault: true
+  debug: false
+
+secret:
+  databaseUrl: "sqlite+aiosqlite:////app/data/arypodr.db"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  host: arypodr.example.com
+  tlsSecretName: ""
+
+persistence:
+  db:
+    size: 1Gi
+    storageClassName: ""
+  media:
+    size: 50Gi
+    storageClassName: ""
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"

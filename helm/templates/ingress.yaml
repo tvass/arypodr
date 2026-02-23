@@ -1,0 +1,17 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: arypodr-web-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ .Values.ingress.host }}`)
+      kind: Rule
+      services:
+        - name: {{ include "arypodr.fullname" . }}
+          port: {{ .Values.service.port }}
+  tls:
+    secretName: {{ .Values.ingress.tlsSecretName }}

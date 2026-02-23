@@ -1,0 +1,17 @@
+# After each episode is fully downloaded, AryPodr POSTs this payload
+# to every configured URL:
+#
+#   {
+#     "show_slug":           "le-code-a-change",
+#     "episode_id":          "3f2a1b...",
+#     "title":               "Le numérique en milieu rural",
+#     "local_path":          "/podcasts/le-code-a-change/2024-01-15-.../audio.mp3",
+#     "enclosure_url_local": "http://arypodr.home.arpa/media/..."
+#   }
+#
+# Examples: Argo transcription pipelines, audio normalization, FTP upload, Slack/Telegram notifications, ...
+
+webhooks:
+  - url: http://my.media-processing.svc.cluster.local:8080/api/v1/events/media-processing/episode-ready
+    headers:
+      Authorization: Bearer a-service-account-token-with-event-create-permission

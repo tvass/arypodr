@@ -1,0 +1,15 @@
+.claude/
+.pytest_cache/
+.env
+hooks.yaml
+*.db
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+mock/*.mp3
+mock/*.jpg
+*.opml
+podcasts/
+helm/values-prod.yaml
