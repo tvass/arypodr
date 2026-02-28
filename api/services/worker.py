@@ -296,11 +296,8 @@ async def _maybe_refresh() -> None:
             show = await session.get(Show, show_id)
             if not show:
                 continue
-            if parsed.new_feed_url and parsed.new_feed_url != show.upstream_url:
-                history = list(show.upstream_url_history or [])
-                history.append(show.upstream_url)
-                show.upstream_url_history = history
-                show.upstream_url = parsed.new_feed_url
+            if parsed.new_feed_url:
+                show.apply_feed_redirect(parsed.new_feed_url)
                 logger.info("Feed moved for %s -> %s", show_slug, parsed.new_feed_url)
             image_changed = sync_show_metadata(show, parsed)
             show.updated_at = datetime.now(UTC)

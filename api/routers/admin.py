@@ -177,11 +177,6 @@ async def _show_response(show: Show, db: AsyncSession) -> ShowResponse:
 async def create_show(body: ShowCreate, db: DB):
     url = str(body.upstream_url)
 
-    if await _url_already_registered(url, db):
-        raise HTTPException(
-            status_code=409, detail="A show with this URL is already registered"
-        )
-
     try:
         parsed = await fetch_and_parse(url)
     except FeedFetchError as exc:
@@ -189,12 +184,19 @@ async def create_show(body: ShowCreate, db: DB):
     except FeedParseError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
+    # If feed advertises a new URL, use it straight away
+    upstream_url = parsed.new_feed_url or url
+
+    # Check for duplicates after parsing so we can also catch redirected URLs
+    for candidate in {url, upstream_url}:
+        if await _url_already_registered(candidate, db):
+            raise HTTPException(
+                status_code=409, detail="A show with this URL is already registered"
+            )
+
     # Slug
     base_slug = slugify(body.slug) if body.slug else slugify(parsed.title)
     slug = await _unique_slug(base_slug, db)
-
-    # If feed advertises a new URL, use it straight away
-    upstream_url = parsed.new_feed_url or url
 
     show = Show(
         slug=slug,
@@ -326,11 +328,8 @@ async def _refresh_show_background(slug: str, upstream_url: str) -> None:
         if show is None:
             return
 
-        if parsed.new_feed_url and parsed.new_feed_url != show.upstream_url:
-            history = list(show.upstream_url_history or [])
-            history.append(show.upstream_url)
-            show.upstream_url_history = history
-            show.upstream_url = parsed.new_feed_url
+        if parsed.new_feed_url:
+            show.apply_feed_redirect(parsed.new_feed_url)
             logger.info("Feed URL updated for %s → %s", slug, parsed.new_feed_url)
 
         image_changed = sync_show_metadata(show, parsed)
@@ -485,12 +484,17 @@ async def _import_feeds_background(feed_urls: list[str]) -> None:
     imported = skipped = 0
     errors = []
 
+    # Deduplicate within the batch, keeping first occurrence of each normalized URL.
+    seen: set[str] = set()
+    unique_urls = []
     for url in feed_urls:
-        async with AsyncSessionLocal() as db:
-            if await _url_already_registered(url, db):
-                skipped += 1
-                continue
+        key = _normalize_url(url)
+        if key not in seen:
+            seen.add(key)
+            unique_urls.append(url)
+    feed_urls = unique_urls
 
+    for url in feed_urls:
         try:
             parsed = await fetch_and_parse(url)
         except Exception as exc:
@@ -498,10 +502,15 @@ async def _import_feeds_background(feed_urls: list[str]) -> None:
             errors.append({"url": url, "error": str(exc)})
             continue
 
+        upstream_url = parsed.new_feed_url or url
+
         async with AsyncSessionLocal() as db:
+            if any(await _url_already_registered(u, db) for u in {url, upstream_url}):
+                skipped += 1
+                continue
+
             base_slug = slugify(parsed.title)
             slug = await _unique_slug(base_slug, db)
-            upstream_url = parsed.new_feed_url or url
 
             show = Show(
                 slug=slug,

@@ -40,3 +40,12 @@ class Show(Base):
     episodes: Mapped[list["Episode"]] = relationship(  # noqa: F821
         "Episode", back_populates="show", cascade="all, delete-orphan"
     )
+
+    def apply_feed_redirect(self, new_url: str) -> None:
+        """Record a feed URL change: push current URL into history, set new URL."""
+        if new_url == self.upstream_url:
+            return
+        self.upstream_url_history = list(self.upstream_url_history or []) + [
+            self.upstream_url
+        ]
+        self.upstream_url = new_url
